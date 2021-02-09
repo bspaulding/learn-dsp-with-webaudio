@@ -3,8 +3,11 @@ const log = (...args) => {
   shouldLog ? console.info(...args) : undefined;
 };
 
-const bufferLengthSeconds = 0.6;
-const bufferLength = sampleRate * bufferLengthSeconds;
+const bufferLengthSeconds = 0.588;
+// ceil is for when this divide doesn't come out to a clean integer,
+// ie: 44100 * 0.7 = 30869.9999999...
+// this does mean we can't _really_ rely on the buffer length for the delay time anymore :(
+const bufferLength = Math.ceil(sampleRate * bufferLengthSeconds);
 
 class DelayProcessor extends AudioWorkletProcessor {
   constructor() {
