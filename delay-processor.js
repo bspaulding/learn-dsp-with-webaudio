@@ -25,18 +25,21 @@ class DelayProcessor extends AudioWorkletProcessor {
   process(inputs, outputs, parameters) {
     const buffers = this.buffers;
     const sampleClock = this.sampleClock;
-    inputs[0].forEach((samples, c) => {
-      samples.forEach((sample, s) => {
-        // i think this should give us a wrap around buffer, the length of which corresponds to the delay time
-        const bufferIndex = (sampleClock + s) % bufferLength;
+    for (let s = 0; s < inputs[0][0].length; s++) {
+      let sampleL = inputs[0][0][s];
+      let sampleR = inputs[0][1][s];
 
-        // write sample + buffer value
-        outputs[0][c][s] = sample + buffers[c][bufferIndex];
+      // i think this should give us a wrap around buffer, the length of which corresponds to the delay time
+      const bufferIndex = (sampleClock + s) % bufferLength;
 
-        // overwrite buffer value for next time
-        buffers[c][bufferIndex] = sample + feedback * buffers[c][bufferIndex];
-      });
-    });
+      // write sample + buffer value
+      outputs[0][0][s] = sampleL + buffers[0][bufferIndex];
+      outputs[0][1][s] = sampleR + buffers[1][bufferIndex];
+
+      // overwrite buffer value for next time
+      buffers[0][bufferIndex] = sampleL + feedback * buffers[0][bufferIndex];
+      buffers[1][bufferIndex] = sampleR + feedback * buffers[1][bufferIndex];
+    }
     this.sampleClock += inputs[0][0].length;
     shouldLog = false;
 
