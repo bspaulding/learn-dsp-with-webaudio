@@ -9,6 +9,9 @@ const bufferLengthSeconds = 0.588;
 // this does mean we can't _really_ rely on the buffer length for the delay time anymore :(
 const bufferLength = Math.ceil(sampleRate * bufferLengthSeconds);
 
+// 0.2 == 20%
+const feedback = 0.2;
+
 class DelayProcessor extends AudioWorkletProcessor {
   constructor() {
     super();
@@ -31,7 +34,7 @@ class DelayProcessor extends AudioWorkletProcessor {
         outputs[0][c][s] = sample + buffers[c][bufferIndex];
 
         // overwrite buffer value for next time
-        buffers[c][bufferIndex] = sample;
+        buffers[c][bufferIndex] = sample + feedback * buffers[c][bufferIndex];
       });
     });
     this.sampleClock += inputs[0][0].length;
