@@ -52,4 +52,3 @@ class DelayProcessor extends AudioWorkletProcessor {
 }
 
 registerProcessor("delay-processor", DelayProcessor);
-console.info({ sampleRate });
