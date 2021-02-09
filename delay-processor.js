@@ -10,7 +10,10 @@ const bufferLengthSeconds = 0.588;
 const bufferLength = Math.ceil(sampleRate * bufferLengthSeconds);
 
 // 0.2 == 20%
-const feedback = 0.2;
+const feedback = 0.4;
+
+// 0.5 = 50%
+const mix = 0.3;
 
 class DelayProcessor extends AudioWorkletProcessor {
   constructor() {
@@ -33,8 +36,8 @@ class DelayProcessor extends AudioWorkletProcessor {
       const bufferIndex = (sampleClock + s) % bufferLength;
 
       // write sample + buffer value
-      outputs[0][0][s] = sampleL + buffers[0][bufferIndex];
-      outputs[0][1][s] = sampleR + buffers[1][bufferIndex];
+      outputs[0][0][s] = sampleL * (1 - mix) + buffers[0][bufferIndex] * mix;
+      outputs[0][1][s] = sampleR * (1 - mix) + buffers[1][bufferIndex] * mix;
 
       // overwrite buffer value for next time
       buffers[0][bufferIndex] = sampleL + feedback * buffers[0][bufferIndex];
