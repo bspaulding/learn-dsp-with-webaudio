@@ -19,6 +19,24 @@ async function start() {
   guitarBufferSource.connect(delayNode);
   delayNode.connect(audioContext.destination);
 
+  // update delay param ui
+  const mixSlider = document.getElementById("mix");
+  mixSlider.value = delayNode.parameters.get("mix").value * 100;
+  mixSlider.addEventListener(
+    "input",
+    event =>
+      (delayNode.parameters.get("mix").value =
+        parseInt(event.target.value, 10) / 100)
+  );
+  const feedbackSlider = document.getElementById("feedback");
+  feedbackSlider.value = delayNode.parameters.get("feedback").value * 100;
+  feedbackSlider.addEventListener(
+    "input",
+    event =>
+      (delayNode.parameters.get("feedback").value =
+        parseInt(event.target.value, 10) / 100)
+  );
+
   guitarBufferSource.start(0);
 }
 

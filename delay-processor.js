@@ -9,13 +9,26 @@ const bufferLengthSeconds = 0.588;
 // this does mean we can't _really_ rely on the buffer length for the delay time anymore :(
 const bufferLength = Math.ceil(sampleRate * bufferLengthSeconds);
 
-// 0.2 == 20%
-const feedback = 0.4;
-
-// 0.5 = 50%
-const mix = 0.3;
-
 class DelayProcessor extends AudioWorkletProcessor {
+  static get parameterDescriptors() {
+    return [
+      {
+        name: "feedback",
+        defaultValue: 0.4,
+        minValue: 0.0,
+        maxValue: 1.0,
+        automationRate: "a-rate"
+      },
+      {
+        name: "mix",
+        defaultValue: 0.3,
+        minValue: 0.0,
+        maxValue: 1.0,
+        automationRate: "a-rate"
+      }
+    ];
+  }
+
   constructor() {
     super();
     this.sampleClock = 0;
@@ -26,9 +39,19 @@ class DelayProcessor extends AudioWorkletProcessor {
   }
 
   process(inputs, outputs, parameters) {
+    log({ parameters });
     const buffers = this.buffers;
     const sampleClock = this.sampleClock;
     for (let s = 0; s < inputs[0][0].length; s++) {
+      let mix =
+        parameters["mix"].length > 1
+          ? parameters["mix"][s]
+          : parameters["mix"][0];
+      let feedback =
+        parameters["feedback"].length > 1
+          ? parameters["feedback"][s]
+          : parameters["feedback"][0];
+
       let sampleL = inputs[0][0][s];
       let sampleR = inputs[0][1][s];
 
