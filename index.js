@@ -28,6 +28,7 @@ async function start() {
       (delayNode.parameters.get("mix").value =
         parseInt(event.target.value, 10) / 100)
   );
+  mixSlider.removeAttribute("disabled");
   const feedbackSlider = document.getElementById("feedback");
   feedbackSlider.value = delayNode.parameters.get("feedback").value * 100;
   feedbackSlider.addEventListener(
@@ -36,6 +37,7 @@ async function start() {
       (delayNode.parameters.get("feedback").value =
         parseInt(event.target.value, 10) / 100)
   );
+  feedbackSlider.removeAttribute("disabled");
 
   guitarBufferSource.start(0);
 }
