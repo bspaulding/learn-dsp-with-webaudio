@@ -1,8 +1,3 @@
-let shouldLog = true;
-const log = (...args) => {
-  shouldLog ? console.info(...args) : undefined;
-};
-
 const bufferLengthSeconds = 0.588;
 // ceil is for when this divide doesn't come out to a clean integer,
 // ie: 44100 * 0.7 = 30869.9999999...
@@ -39,7 +34,6 @@ class DelayProcessor extends AudioWorkletProcessor {
   }
 
   process(inputs, outputs, parameters) {
-    log({ parameters });
     const buffers = this.buffers;
     const sampleClock = this.sampleClock;
     for (let s = 0; s < inputs[0][0].length; s++) {
@@ -67,7 +61,6 @@ class DelayProcessor extends AudioWorkletProcessor {
       buffers[1][bufferIndex] = sampleR + feedback * buffers[1][bufferIndex];
     }
     this.sampleClock += inputs[0][0].length;
-    shouldLog = false;
 
     // return "isActivelyProcessing" TODO: figure out when the buffer is empty and return false maybe?
     return true;
