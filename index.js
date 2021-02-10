@@ -21,22 +21,33 @@ async function start() {
 
   // update delay param ui
   const mixSlider = document.getElementById("mix");
+  const mixValue = document.getElementById("mix-value");
   mixSlider.value = delayNode.parameters.get("mix").value * 100;
-  mixSlider.addEventListener(
-    "input",
-    event =>
-      (delayNode.parameters.get("mix").value =
-        parseInt(event.target.value, 10) / 100)
-  );
+  mixValue.innerText = `${Math.floor(
+    delayNode.parameters.get("mix").value * 100
+  )}%`;
+  mixSlider.addEventListener("input", event => {
+    delayNode.parameters.get("mix").value =
+      parseInt(event.target.value, 10) / 100;
+    mixValue.innerText = `${Math.floor(
+      delayNode.parameters.get("mix").value * 100
+    )}%`;
+  });
   mixSlider.removeAttribute("disabled");
+
   const feedbackSlider = document.getElementById("feedback");
+  const feedbackValue = document.getElementById("feedback-value");
   feedbackSlider.value = delayNode.parameters.get("feedback").value * 100;
-  feedbackSlider.addEventListener(
-    "input",
-    event =>
-      (delayNode.parameters.get("feedback").value =
-        parseInt(event.target.value, 10) / 100)
-  );
+  feedbackValue.innerText = `${Math.floor(
+    delayNode.parameters.get("feedback").value * 100
+  )}%`;
+  feedbackSlider.addEventListener("input", event => {
+    delayNode.parameters.get("feedback").value =
+      parseInt(event.target.value, 10) / 100;
+    feedbackValue.innerText = `${Math.floor(
+      delayNode.parameters.get("feedback").value * 100
+    )}%`;
+  });
   feedbackSlider.removeAttribute("disabled");
 
   guitarBufferSource.start(0);
