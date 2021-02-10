@@ -7,32 +7,74 @@
   <body>
     <button id="start">start</button>
 
-    <div>
-      <label for="mix">mix</label>
-      <input
-        type="range"
-        id="mix"
-        name="mix"
-        min="0"
-        max="100"
-        value="0"
-        disabled
-      />
-      <span id="mix-value"></span>
-    </div>
+    <style>
+      .audio-nodes {
+        display: flex;
+        justify-content: space-between;
+      }
+    </style>
+    <div class="audio-nodes">
+      <style>
+        .audio-node-params-group {
+          --audio-node-type-color: black;
+          border: 4px solid var(--audio-node-type-color);
+        }
+        .audio-node-params-group > .title {
+          font-weight: 600;
+        }
+        .audio-node-type-dynamics {
+          --audio-node-type-color: yellow;
+        }
+        .audio-node-type-delay {
+          --audio-node-type-color: rgb(66, 96, 147);
+        }
+      </style>
+      <div class="audio-node-params-group audio-node-type-delay">
+        <div class="title">compressor</div>
+        <div>
+          <label for="threshold">threshold</label>
+          <input
+            type="range"
+            id="threshold"
+            name="threshold"
+            min="-80"
+            max="0"
+            value="-30"
+            disabled
+          />
+          <span id="threshold-value"></span>
+        </div>
+      </div>
+      <div class="audio-node-params-group audio-node-type-delay">
+        <div class="title">delay</div>
+        <div>
+          <label for="mix">mix</label>
+          <input
+            type="range"
+            id="mix"
+            name="mix"
+            min="0"
+            max="100"
+            value="0"
+            disabled
+          />
+          <span id="mix-value"></span>
+        </div>
 
-    <div>
-      <label for="feedback">feedback</label>
-      <input
-        type="range"
-        id="feedback"
-        name="feedback"
-        min="0"
-        max="100"
-        value="0"
-        disabled
-      />
-      <span id="feedback-value"></span>
+        <div>
+          <label for="feedback">feedback</label>
+          <input
+            type="range"
+            id="feedback"
+            name="feedback"
+            min="0"
+            max="100"
+            value="0"
+            disabled
+          />
+          <span id="feedback-value"></span>
+        </div>
+      </div>
     </div>
 
     <script src="index.js"></script>
