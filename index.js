@@ -43,7 +43,7 @@ async function start() {
     delayNode,
     asPercent,
     parsePercent,
-    x => x * 100
+    (el, x) => (el.value = x * 100)
   );
   wireParam(
     "feedback",
@@ -52,7 +52,7 @@ async function start() {
     delayNode,
     asPercent,
     parsePercent,
-    x => x * 100
+    (el, x) => (el.value = x * 100)
   );
   wireParam(
     "threshold",
@@ -61,6 +61,26 @@ async function start() {
     compressorNode,
     asDb,
     parseInteger
+  );
+  wireParam(
+    "ratio",
+    "ratio-value",
+    "ratio",
+    compressorNode,
+    x => `${x}:1`,
+    parseInteger
+  );
+  wireParam(
+    "compressor-bypass",
+    "compressor-bypass-value",
+    "bypass",
+    compressorNode,
+    // labeltransform
+    x => (x ? "Bypassed" : "Engaged"),
+    // parseValueTransform
+    e => (e.target.checked ? 1 : 0),
+    // updateValue
+    (el, v) => (el.checked = !!v)
   );
 
   guitarBufferSource.start(0);
@@ -88,8 +108,8 @@ const identity = x => x;
 const asPercent = x => `${Math.floor(x * 100)}%`;
 const asDb = x => `${x}dB`;
 
-const parsePercent = value => parseInt(value, 10) / 100;
-const parseInteger = value => parseInt(value, 10);
+const parsePercent = event => parseInt(event.target.value, 10) / 100;
+const parseInteger = event => parseInt(event.target.value, 10);
 
 function wireParam(
   inputId,
@@ -98,16 +118,14 @@ function wireParam(
   node,
   labelTransform = identity,
   parseValueTransform = identity,
-  inputValueTransform = identity
+  updateInput = (el, v) => (el.value = v)
 ) {
   const control = document.getElementById(inputId);
   const valueLabel = document.getElementById(valueId);
-  control.value = inputValueTransform(node.parameters.get(paramName).value);
+  updateInput(control, (control.value = node.parameters.get(paramName).value));
   valueLabel.innerText = labelTransform(node.parameters.get(paramName).value);
   control.addEventListener("input", event => {
-    node.parameters.get(paramName).value = parseValueTransform(
-      event.target.value
-    );
+    node.parameters.get(paramName).value = parseValueTransform(event);
     valueLabel.innerText = labelTransform(node.parameters.get(paramName).value);
   });
   control.removeAttribute("disabled");

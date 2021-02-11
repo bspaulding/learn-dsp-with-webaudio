@@ -32,6 +32,16 @@
       <div class="audio-node-params-group audio-node-type-delay">
         <div class="title">compressor</div>
         <div>
+          <label for="compressor-bypass">bypass</label>
+          <input
+            type="checkbox"
+            id="compressor-bypass"
+            name="compressor-bypass"
+            disabled
+          />
+          <span id="compressor-bypass-value"></span>
+        </div>
+        <div>
           <label for="threshold">threshold</label>
           <input
             type="range"
@@ -43,6 +53,19 @@
             disabled
           />
           <span id="threshold-value"></span>
+        </div>
+        <div>
+          <label for="ratio">ratio</label>
+          <input
+            type="range"
+            id="ratio"
+            name="ratio"
+            min="1"
+            max="20"
+            value="2"
+            disabled
+          />
+          <span id="ratio-value"></span>
         </div>
       </div>
       <div class="audio-node-params-group audio-node-type-delay">
