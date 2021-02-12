@@ -65,6 +65,14 @@ async function start() {
     (el, x) => (el.value = x * 100)
   );
   wireParam(
+    "compressor-input-gain",
+    "compressor-input-gain-value",
+    "input-gain",
+    compressorNode,
+    asFloating(1),
+    parseFloating
+  );
+  wireParam(
     "threshold",
     "threshold-value",
     "threshold",
@@ -117,9 +125,19 @@ function loadBuffer(audioContext, url) {
 const identity = x => x;
 const asPercent = x => `${Math.floor(x * 100)}%`;
 const asDb = x => `${x}dB`;
+const asFloating = precision => x =>
+  x
+    .toString()
+    .split(".")
+    .reduce(
+      (str, part, i) =>
+        i === 0 ? str + part : str + "." + part.slice(0, precision),
+      ""
+    );
 
 const parsePercent = event => parseInt(event.target.value, 10) / 100;
 const parseInteger = event => parseInt(event.target.value, 10);
+const parseFloating = event => parseFloat(event.target.value);
 
 function wireParam(
   inputId,

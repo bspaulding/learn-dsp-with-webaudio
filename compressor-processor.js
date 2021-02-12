@@ -20,6 +20,13 @@ class CompressorProcessor extends AudioWorkletProcessor {
   static get parameterDescriptors() {
     return [
       {
+        name: "input-gain",
+        defaultValue: 1,
+        minValue: 0,
+        maxValue: 2,
+        automationRate: "a-rate"
+      },
+      {
         name: "threshold",
         defaultValue: -30,
         minValue: -80,
@@ -56,6 +63,7 @@ class CompressorProcessor extends AudioWorkletProcessor {
     let threshold = parameters["threshold"][0];
     let ratio = parameters["ratio"][0];
     let bypass = parameters["bypass"][0];
+    let inputGain = parameters["input-gain"][0];
 
     const { rmsBuffers, sampleClock } = this;
 
@@ -67,7 +75,8 @@ class CompressorProcessor extends AudioWorkletProcessor {
         const rmsDb = mag2db(srms);
         const reductionDb = Math.max(rmsDb - threshold, 0) * ratio;
 
-        samples.forEach((sample, s) => {
+        samples.forEach((sampleRaw, s) => {
+          const sample = inputGain * sampleRaw;
           // write sample to rmsBuffer
           const rmsBufferIndex = (sampleClock + s) % rmsBufferLength;
           rmsBuffers[c][s] = sample;
