@@ -29,6 +29,7 @@ async function start() {
   );
   compressorNode.port.onmessage = event => {
     const { reductionDb, rmsDb } = JSON.parse(event.data);
+    document.querySelector("#compressor-rms-raw").innerText = Math.ceil(rmsDb);
     document.querySelector("progress[name=compressor-rms]").value = Math.abs(
       rmsDb / 100
     );

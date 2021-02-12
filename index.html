@@ -23,13 +23,13 @@
           font-weight: 600;
         }
         .audio-node-type-dynamics {
-          --audio-node-type-color: yellow;
+          --audio-node-type-color: orange;
         }
         .audio-node-type-delay {
           --audio-node-type-color: rgb(66, 96, 147);
         }
       </style>
-      <div class="audio-node-params-group audio-node-type-delay">
+      <div class="audio-node-params-group audio-node-type-dynamics">
         <div class="title">compressor</div>
         <div>
           <label for="compressor-bypass">bypass</label>
@@ -70,6 +70,7 @@
         <div>
           <progress name="compressor-rms" value="0"></progress>
           <label for="compressor-rms">rms</label>
+          <span id="compressor-rms-raw"></span>
         </div>
         <div>
           <progress

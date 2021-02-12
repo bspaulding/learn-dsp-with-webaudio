@@ -13,7 +13,7 @@ const db2mag = ydb => Math.pow(10, ydb / 20);
 const rms = xs =>
   Math.pow(xs.reduce((acc, x) => acc + Math.pow(x, 2), 0) / xs.length, 0.5);
 
-const rmsBufferLengthSeconds = 0.3;
+const rmsBufferLengthSeconds = 0.5;
 const rmsBufferLength = Math.ceil(sampleRate * rmsBufferLengthSeconds);
 
 class CompressorProcessor extends AudioWorkletProcessor {
@@ -53,36 +53,25 @@ class CompressorProcessor extends AudioWorkletProcessor {
   }
 
   process(inputs, outputs, parameters) {
-    const { rmsBuffers, sampleClock } = this;
+    let threshold = parameters["threshold"][0];
+    let ratio = parameters["ratio"][0];
+    let bypass = parameters["bypass"][0];
 
-    // TODO: only grabbing left channel rn
-    const srms = rms(rmsBuffers[0]);
-    const rmsDb = mag2db(srms);
+    const { rmsBuffers, sampleClock } = this;
 
     const metrics = [];
 
     inputs.forEach((channels, i) => {
       channels.forEach((samples, c) => {
+        const srms = rms(rmsBuffers[c]);
+        const rmsDb = mag2db(srms);
+        const reductionDb = Math.max(rmsDb - threshold, 0) * ratio;
+
         samples.forEach((sample, s) => {
           // write sample to rmsBuffer
           const rmsBufferIndex = (sampleClock + s) % rmsBufferLength;
           rmsBuffers[c][s] = sample;
 
-          // get parameter values for sample
-          let threshold =
-            parameters["threshold"].length > 1
-              ? parameters["threshold"][s]
-              : parameters["threshold"][0];
-          let ratio =
-            parameters["ratio"].length > 1
-              ? parameters["ratio"][s]
-              : parameters["ratio"][0];
-          let bypass =
-            parameters["bypass"].length > 1
-              ? parameters["bypass"][s]
-              : parameters["bypass"][0];
-
-          const reductionDb = Math.max(rmsDb - threshold, 0) * ratio;
           const sampleCompressed =
             (sample < 0 ? -1 : 1) *
             db2mag(mag2db(Math.abs(sample)) - reductionDb);
@@ -103,6 +92,7 @@ class CompressorProcessor extends AudioWorkletProcessor {
 
     const reductionDb =
       metrics.reduce((x, m) => x + m.reductionDb, 0) / metrics.length;
+    const rmsDb = metrics.reduce((x, m) => x + m.rmsDb, 0) / metrics.length;
     this.port.postMessage(JSON.stringify({ reductionDb, rmsDb }));
 
     // TODO: can't seem to be able to return false here, even though docs say i should be able to?
