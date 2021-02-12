@@ -27,6 +27,15 @@ async function start() {
     audioContext,
     "compressor-processor"
   );
+  compressorNode.port.onmessage = event => {
+    const { reductionDb, rmsDb } = JSON.parse(event.data);
+    document.querySelector("progress[name=compressor-rms]").value = Math.abs(
+      rmsDb / 100
+    );
+    document.querySelector(
+      "progress[name=compressor-reduction]"
+    ).value = Math.abs(reductionDb / 100);
+  };
 
   await audioContext.audioWorklet.addModule("delay-processor.js");
   const delayNode = new AudioWorkletNode(audioContext, "delay-processor");

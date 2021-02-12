@@ -13,8 +13,9 @@ const db2mag = ydb => Math.pow(10, ydb / 20);
 const rms = xs =>
   Math.pow(xs.reduce((acc, x) => acc + Math.pow(x, 2), 0) / xs.length, 0.5);
 
-let lastSrms = 0;
-let calls = 0;
+const rmsBufferLengthSeconds = 0.3;
+const rmsBufferLength = Math.ceil(sampleRate * rmsBufferLengthSeconds);
+
 class CompressorProcessor extends AudioWorkletProcessor {
   static get parameterDescriptors() {
     return [
@@ -42,14 +43,32 @@ class CompressorProcessor extends AudioWorkletProcessor {
     ];
   }
 
+  constructor() {
+    super();
+    this.sampleClock = 0;
+    this.rmsBuffers = [
+      new Float32Array(rmsBufferLength),
+      new Float32Array(rmsBufferLength)
+    ];
+  }
+
   process(inputs, outputs, parameters) {
-    calls += 1;
+    const { rmsBuffers, sampleClock } = this;
+
+    // TODO: only grabbing left channel rn
+    const srms = rms(rmsBuffers[0]);
+    const rmsDb = mag2db(srms);
+
+    const metrics = [];
+
     inputs.forEach((channels, i) => {
       channels.forEach((samples, c) => {
-        const srms = rms(samples);
-        const rmsDb = mag2db(srms);
-        lastSrms = srms;
         samples.forEach((sample, s) => {
+          // write sample to rmsBuffer
+          const rmsBufferIndex = (sampleClock + s) % rmsBufferLength;
+          rmsBuffers[c][s] = sample;
+
+          // get parameter values for sample
           let threshold =
             parameters["threshold"].length > 1
               ? parameters["threshold"][s]
@@ -67,22 +86,24 @@ class CompressorProcessor extends AudioWorkletProcessor {
           const sampleCompressed =
             (sample < 0 ? -1 : 1) *
             db2mag(mag2db(Math.abs(sample)) - reductionDb);
-          if (calls > 5 && calls < 10) {
-            console.log({
-              rmsDb,
-              threshold,
-              ratio,
-              reductionDb,
-              sample,
-              sampleCompressed
-            });
+
+          if (isNaN(sampleCompressed)) {
+            console.warn("compressed sample value was NaN!");
           }
+
+          metrics.push({ threshold, ratio, rmsDb, reductionDb });
 
           outputs[i][c][s] =
             bypass || isNaN(sampleCompressed) ? sample : sampleCompressed;
         });
       });
+
+      this.sampleClock += channels[0].length;
     });
+
+    const reductionDb =
+      metrics.reduce((x, m) => x + m.reductionDb, 0) / metrics.length;
+    this.port.postMessage(JSON.stringify({ reductionDb, rmsDb }));
 
     // TODO: can't seem to be able to return false here, even though docs say i should be able to?
     return true;
