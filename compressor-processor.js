@@ -23,7 +23,7 @@ class CompressorProcessor extends AudioWorkletProcessor {
         name: "input-gain",
         defaultValue: 1,
         minValue: 0,
-        maxValue: 2,
+        maxValue: 5,
         automationRate: "a-rate"
       },
       {
