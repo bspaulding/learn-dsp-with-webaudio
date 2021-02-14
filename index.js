@@ -2,14 +2,22 @@ async function main() {
   document.getElementById("start").addEventListener("click", start);
 }
 
+let init = false;
 let playing = false;
 let bufferSource;
 async function start() {
   if (playing) {
     bufferSource.stop();
+    playing = false;
+    return;
+  } else if (init) {
+    bufferSource.start(0);
+    playing = true;
     return;
   }
+
   playing = true;
+  init = true;
 
   const audioContext = new AudioContext();
 
@@ -17,9 +25,36 @@ async function start() {
     audioContext,
     "audio/guitar-raw.wav"
   );
-  const guitarBufferSource = audioContext.createBufferSource();
-  guitarBufferSource.buffer = rawGuitarBuffer;
-  guitarBufferSource.loop = true;
+  let useWorkletBufferSource = true;
+  let guitarBufferSource;
+  if (!useWorkletBufferSource) {
+    guitarBufferSource = audioContext.createBufferSource();
+    guitarBufferSource.buffer = rawGuitarBuffer;
+    guitarBufferSource.loop = true;
+  } else {
+    await audioContext.audioWorklet.addModule("buffer-source-processor.js");
+    guitarBufferSource = new AudioWorkletNode(
+      audioContext,
+      "buffer-source-processor"
+    );
+    const loadBufferMsg = JSON.stringify({
+      type: "buffer",
+      payload: {
+        channels: [...Array(rawGuitarBuffer.numberOfChannels)].map((_, i) =>
+          rawGuitarBuffer.getChannelData(i)
+        )
+      }
+    });
+    guitarBufferSource.port.postMessage(loadBufferMsg);
+    guitarBufferSource.start = ms => {
+      guitarBufferSource.port.postMessage(
+        JSON.stringify({ type: "start", payload: ms })
+      );
+    };
+    guitarBufferSource.stop = ms => {
+      guitarBufferSource.port.postMessage(JSON.stringify({ type: "stop" }));
+    };
+  }
   bufferSource = guitarBufferSource;
 
   await audioContext.audioWorklet.addModule("compressor-processor.js");

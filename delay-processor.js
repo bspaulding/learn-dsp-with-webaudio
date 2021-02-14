@@ -34,8 +34,8 @@ class DelayProcessor extends AudioWorkletProcessor {
   }
 
   process(inputs, outputs, parameters) {
-    if (inputs.length === 0) {
-      return false;
+    if (inputs.length === 0 || inputs[0].length != 2) {
+      return true;
     }
 
     const buffers = this.buffers;
