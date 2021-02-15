@@ -32,20 +32,18 @@ async function start() {
     guitarBufferSource.buffer = rawGuitarBuffer;
     guitarBufferSource.loop = true;
   } else {
+    const bufferChannels = [
+      ...Array(rawGuitarBuffer.numberOfChannels)
+    ].map((_, i) => rawGuitarBuffer.getChannelData(i));
     await audioContext.audioWorklet.addModule("buffer-source-processor.js");
     guitarBufferSource = new AudioWorkletNode(
       audioContext,
-      "buffer-source-processor"
-    );
-    const loadBufferMsg = JSON.stringify({
-      type: "buffer",
-      payload: {
-        channels: [...Array(rawGuitarBuffer.numberOfChannels)].map((_, i) =>
-          rawGuitarBuffer.getChannelData(i)
-        )
+      "buffer-source-processor",
+      {
+        outputChannelCount: [2],
+        processorOptions: { bufferChannels }
       }
-    });
-    guitarBufferSource.port.postMessage(loadBufferMsg);
+    );
     guitarBufferSource.start = ms => {
       guitarBufferSource.port.postMessage(
         JSON.stringify({ type: "start", payload: ms })
