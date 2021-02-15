@@ -9,10 +9,12 @@ async function start() {
   if (playing) {
     bufferSource.stop();
     playing = false;
+    document.getElementById("start").innerText = "start";
     return;
   } else if (init) {
     bufferSource.start(0);
     playing = true;
+    document.getElementById("start").innerText = "stop";
     return;
   }
 
@@ -135,6 +137,7 @@ async function start() {
   );
 
   guitarBufferSource.start(0);
+  document.getElementById("start").innerText = "stop";
 }
 
 main()
