@@ -74,6 +74,8 @@ class CompressorProcessor extends AudioWorkletProcessor {
     let ratio = parameters["ratio"][0];
     let bypass = parameters["bypass"][0];
     let inputGain = parameters["input-gain"][0];
+    let attackMs = parameters["attack"][0];
+    const attackSamples = (attackMs / 1000) * sampleRate;
 
     const { rmsBuffers, sampleClock } = this;
 
@@ -99,7 +101,7 @@ class CompressorProcessor extends AudioWorkletProcessor {
 
           const sampleCompressed = reduceMagByDb(
             sample,
-            reductionDb * (rmsBufferIndex / rmsBufferLength)
+            reductionDb * (s / attackSamples)
           );
 
           if (isNaN(sampleCompressed)) {
