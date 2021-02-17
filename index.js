@@ -62,16 +62,47 @@ async function start() {
     audioContext,
     "compressor-processor"
   );
+  const vizBuffersLength = 44100 * 2;
+  const vizBuffers = {
+    samplesBuffer: [],
+    samplesCompressedBuffer: []
+  };
   compressorNode.port.onmessage = event => {
-    const { reductionDb, rmsDb } = JSON.parse(event.data);
+    const { reductionDb, rmsDb, samples, samplesCompressed } = JSON.parse(
+      event.data
+    );
     document.querySelector("#compressor-rms-raw").innerText = Math.ceil(rmsDb);
     document.querySelector("progress[name=compressor-rms]").value = Math.abs(
       rmsDb / 100
     );
+    document.querySelector("#compressor-reduction-raw").innerText = Math.ceil(
+      reductionDb
+    );
     document.querySelector(
       "progress[name=compressor-reduction]"
     ).value = Math.abs(reductionDb / 100);
+
+    vizBuffers["samplesBuffer"] = samples.concat(
+      vizBuffers["samplesBuffer"].slice(0, vizBuffersLength - samples.length)
+    );
+    vizBuffers["samplesCompressedBuffer"] = samplesCompressed.concat(
+      vizBuffers["samplesCompressedBuffer"].slice(
+        0,
+        vizBuffersLength - samplesCompressed.length
+      )
+    );
   };
+
+  drawWave(
+    document.getElementById("compressor-input-wave"),
+    vizBuffers,
+    "samplesBuffer"
+  );
+  drawWave(
+    document.getElementById("compressor-output-wave"),
+    vizBuffers,
+    "samplesCompressedBuffer"
+  );
 
   await audioContext.audioWorklet.addModule("delay-processor.js");
   const delayNode = new AudioWorkletNode(audioContext, "delay-processor");
@@ -193,4 +224,34 @@ function wireParam(
     valueLabel.innerText = labelTransform(node.parameters.get(paramName).value);
   });
   control.removeAttribute("disabled");
+}
+
+function drawWave(canvas, vizBuffers, bufferName) {
+  function draw() {
+    requestAnimationFrame(draw);
+    let data = vizBuffers[bufferName];
+    let bufferLength = data.length;
+
+    let context = canvas.getContext("2d");
+    context.fillStyle = "rgb(235, 235, 235)";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+
+    context.lineWidth = 1;
+    context.strokeStyle = "rgb(0,0,0)";
+
+    context.beginPath();
+
+    var sliceWidth = (canvas.width * 1.0) / bufferLength;
+    var x = 0;
+    for (var i = 0; i < bufferLength; i += 1) {
+      var v = data[i] * 100;
+      var y = canvas.height / 2 + v;
+      i === 0 ? context.moveTo(x, y) : context.lineTo(x, y);
+      x += sliceWidth;
+    }
+
+    context.lineTo(canvas.width, canvas.height / 2);
+    context.stroke();
+  }
+  draw();
 }

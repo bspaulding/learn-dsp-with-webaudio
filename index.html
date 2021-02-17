@@ -93,6 +93,7 @@
             style="transform: rotate(180deg);"
           ></progress>
           <label for="compressor-reduction">reduction</label>
+          <span id="compressor-reduction-raw"></span>
         </div>
       </div>
       <div class="audio-node-params-group audio-node-type-delay">
@@ -127,6 +128,10 @@
       </div>
     </div>
 
+    <div class="visualizations">
+      <canvas width="640" height="100" id="compressor-input-wave"></canvas>
+      <canvas width="640" height="100" id="compressor-output-wave"></canvas>
+    </div>
     <script src="index.js"></script>
   </body>
 </html>

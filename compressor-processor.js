@@ -13,7 +13,10 @@ const db2mag = ydb => Math.pow(10, ydb / 20);
 const rms = xs =>
   Math.pow(xs.reduce((acc, x) => acc + Math.pow(x, 2), 0) / xs.length, 0.5);
 
-const rmsBufferLengthSeconds = 0.5;
+const reduceMagByDb = (sample, reductionDb) =>
+  (sample < 0 ? -1 : 1) * db2mag(mag2db(Math.abs(sample)) - reductionDb);
+
+const rmsBufferLengthSeconds = 0.2;
 const rmsBufferLength = Math.ceil(sampleRate * rmsBufferLengthSeconds);
 
 class CompressorProcessor extends AudioWorkletProcessor {
@@ -38,6 +41,13 @@ class CompressorProcessor extends AudioWorkletProcessor {
         defaultValue: 2,
         minValue: 1,
         maxValue: 20,
+        automationRate: "a-rate"
+      },
+      {
+        name: "attack",
+        defaultValue: 15,
+        minValue: 0,
+        maxValue: 200,
         automationRate: "a-rate"
       },
       {
@@ -73,7 +83,7 @@ class CompressorProcessor extends AudioWorkletProcessor {
       channels.forEach((samples, c) => {
         const srms = rms(rmsBuffers[c]);
         const rmsDb = mag2db(srms);
-        const reductionDb = Math.max(rmsDb - threshold, 0) * ratio;
+        const reductionDb = Math.max(rmsDb - threshold, 0) * (1 / ratio);
 
         samples.forEach((sampleRaw, s) => {
           const sample = inputGain * sampleRaw;
@@ -81,28 +91,39 @@ class CompressorProcessor extends AudioWorkletProcessor {
           const rmsBufferIndex = (sampleClock + s) % rmsBufferLength;
           rmsBuffers[c][s] = sample;
 
-          const sampleCompressed =
-            (sample < 0 ? -1 : 1) *
-            db2mag(mag2db(Math.abs(sample)) - reductionDb);
+          const sampleCompressed = reduceMagByDb(sample, reductionDb);
 
           if (isNaN(sampleCompressed)) {
             console.warn("compressed sample value was NaN!");
           }
 
-          metrics.push({ threshold, ratio, rmsDb, reductionDb });
+          metrics.push({
+            threshold,
+            ratio,
+            rmsDb,
+            reductionDb,
+            sample,
+            sampleCompressed
+          });
 
           outputs[i][c][s] =
             bypass || isNaN(sampleCompressed) ? sample : sampleCompressed;
         });
       });
 
-      this.sampleClock += channels[0].length;
+      if (channels.length) {
+        this.sampleClock += channels[0].length;
+      }
     });
 
     const reductionDb =
       metrics.reduce((x, m) => x + m.reductionDb, 0) / metrics.length;
     const rmsDb = metrics.reduce((x, m) => x + m.rmsDb, 0) / metrics.length;
-    this.port.postMessage(JSON.stringify({ reductionDb, rmsDb }));
+    const samples = metrics.map(m => m.sample);
+    const samplesCompressed = metrics.map(m => m.sampleCompressed);
+    this.port.postMessage(
+      JSON.stringify({ reductionDb, rmsDb, samples, samplesCompressed })
+    );
 
     // TODO: can't seem to be able to return false here, even though docs say i should be able to?
     return true;
