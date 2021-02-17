@@ -79,11 +79,17 @@ class CompressorProcessor extends AudioWorkletProcessor {
 
     const metrics = [];
 
+    const rmsDbByChannel = [];
+    const reductionDbByChannel = [];
+
     inputs.forEach((channels, i) => {
       channels.forEach((samples, c) => {
         const srms = rms(rmsBuffers[c]);
         const rmsDb = mag2db(srms);
         const reductionDb = Math.max(rmsDb - threshold, 0) * (1 / ratio);
+
+        rmsDbByChannel[c] = rmsDb;
+        reductionDbByChannel[c] = reductionDb;
 
         samples.forEach((sampleRaw, s) => {
           const sample = inputGain * sampleRaw;
@@ -91,17 +97,16 @@ class CompressorProcessor extends AudioWorkletProcessor {
           const rmsBufferIndex = (sampleClock + s) % rmsBufferLength;
           rmsBuffers[c][s] = sample;
 
-          const sampleCompressed = reduceMagByDb(sample, reductionDb);
+          const sampleCompressed = reduceMagByDb(
+            sample,
+            reductionDb * (rmsBufferIndex / rmsBufferLength)
+          );
 
           if (isNaN(sampleCompressed)) {
             console.warn("compressed sample value was NaN!");
           }
 
           metrics.push({
-            threshold,
-            ratio,
-            rmsDb,
-            reductionDb,
             sample,
             sampleCompressed
           });
@@ -116,9 +121,8 @@ class CompressorProcessor extends AudioWorkletProcessor {
       }
     });
 
-    const reductionDb =
-      metrics.reduce((x, m) => x + m.reductionDb, 0) / metrics.length;
-    const rmsDb = metrics.reduce((x, m) => x + m.rmsDb, 0) / metrics.length;
+    const reductionDb = reductionDbByChannel[0];
+    const rmsDb = rmsDbByChannel[0];
     const samples = metrics.map(m => m.sample);
     const samplesCompressed = metrics.map(m => m.sampleCompressed);
     this.port.postMessage(
