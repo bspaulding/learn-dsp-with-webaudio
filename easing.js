@@ -25,9 +25,6 @@ function bounceOut(x) {
 }
 
 const easingsFunctions = {
-  linear(x) {
-    return x;
-  },
   easeInQuad(x) {
     return x * x;
   },

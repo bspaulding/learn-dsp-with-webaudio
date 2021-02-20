@@ -1,3 +1,5 @@
+import easingFunctions from "./easing.js";
+
 // logBase(10, y) => log base 10 of y
 const logBase = (base, x) => Math.log(x) / Math.log(base);
 
@@ -124,19 +126,23 @@ class CompressorProcessor extends AudioWorkletProcessor {
           rmsBuffers[c][s] = sample;
 
           const attackMultiplier = this.attackStartClock
-            ? Math.min(
-                // clamp to max of 1 in case time runs over
-                1,
-                (sampleClock - this.attackStartClock + s) / attackSamples
+            ? easingFunctions.easeInSine(
+                Math.min(
+                  // clamp to max of 1 in case time runs over
+                  1,
+                  (sampleClock - this.attackStartClock + s) / attackSamples
+                )
               )
             : 1;
           // similar to attack but inverse linear: y = -x + 1, ie 0 = 1, 1 = 0
           const releaseMultiplier = this.releaseStartClock
             ? -1 *
-                Math.min(
-                  // clamp to max of 1 in case time runs over
-                  1,
-                  (sampleClock - this.releaseStartClock + s) / releaseSamples
+                easingFunctions.easeOutSine(
+                  Math.min(
+                    // clamp to max of 1 in case time runs over
+                    1,
+                    (sampleClock - this.releaseStartClock + s) / releaseSamples
+                  )
                 ) +
               1
             : 1;
