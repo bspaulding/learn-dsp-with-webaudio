@@ -1,7 +1,6 @@
 class BufferSourceProcessor extends AudioWorkletProcessor {
   constructor(options) {
     super();
-    console.log("[BufferSourceProcessor] constructor");
     this.sampleClock = 0;
     this.playing = false;
     this.bufferChannels = options.processorOptions.bufferChannels;
