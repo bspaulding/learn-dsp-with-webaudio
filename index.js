@@ -6,6 +6,10 @@ let init = false;
 let playing = false;
 let bufferSource;
 async function start() {
+  if (!init) {
+    await initAudioApp();
+  }
+
   if (playing) {
     bufferSource.stop();
     playing = false;
@@ -19,6 +23,9 @@ async function start() {
   }
 
   playing = true;
+}
+
+async function initAudioApp() {
   init = true;
 
   const audioContext = new AudioContext();
@@ -62,7 +69,7 @@ async function start() {
     audioContext,
     "compressor-processor"
   );
-  const vizBuffersLength = 44100 * 2;
+  const vizBuffersLength = 44100 * 3;
   const vizBuffers = {
     samplesBuffer: [],
     samplesCompressedBuffer: []
@@ -166,9 +173,6 @@ async function start() {
     // updateValue
     (el, v) => (el.checked = !!v)
   );
-
-  guitarBufferSource.start(0);
-  document.getElementById("start").innerText = "stop";
 }
 
 main()
@@ -236,7 +240,7 @@ function drawWave(canvas, vizBuffers, bufferName) {
     context.fillStyle = "rgb(235, 235, 235)";
     context.fillRect(0, 0, canvas.width, canvas.height);
 
-    context.lineWidth = 1;
+    context.lineWidth = 0.5;
     context.strokeStyle = "rgb(0,0,0)";
 
     context.beginPath();

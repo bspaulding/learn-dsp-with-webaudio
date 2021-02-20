@@ -45,14 +45,21 @@ class CompressorProcessor extends AudioWorkletProcessor {
       },
       {
         name: "attack",
-        defaultValue: 15,
+        defaultValue: 100,
         minValue: 0,
         maxValue: 200,
         automationRate: "a-rate"
       },
       {
+        name: "release",
+        defaultValue: 100,
+        minValue: 5,
+        maxValue: 5000,
+        automationRate: "a-rate"
+      },
+      {
         name: "bypass",
-        defaultValue: 1,
+        defaultValue: 0,
         minValue: 0,
         maxValue: 1,
         automationRate: "a-rate"
@@ -63,6 +70,9 @@ class CompressorProcessor extends AudioWorkletProcessor {
   constructor() {
     super();
     this.sampleClock = 0;
+    this.reductionDb = 0;
+    this.attackStartClock = 0;
+    this.releaseStartClock = 0;
     this.rmsBuffers = [
       new Float32Array(rmsBufferLength),
       new Float32Array(rmsBufferLength)
@@ -75,7 +85,9 @@ class CompressorProcessor extends AudioWorkletProcessor {
     let bypass = parameters["bypass"][0];
     let inputGain = parameters["input-gain"][0];
     let attackMs = parameters["attack"][0];
+    let releaseMs = parameters["release"][0];
     const attackSamples = (attackMs / 1000) * sampleRate;
+    const releaseSamples = (releaseMs / 1000) * sampleRate;
 
     const { rmsBuffers, sampleClock } = this;
 
@@ -85,11 +97,23 @@ class CompressorProcessor extends AudioWorkletProcessor {
     const reductionDbByChannel = [];
 
     inputs.forEach((channels, i) => {
-      channels.forEach((samples, c) => {
-        const srms = rms(rmsBuffers[c]);
-        const rmsDb = mag2db(srms);
-        const reductionDb = Math.max(rmsDb - threshold, 0) * (1 / ratio);
+      const srms = Math.max.apply(
+        null,
+        channels.map((_, c) => rms(rmsBuffers[c]))
+      );
+      const rmsDb = mag2db(srms);
+      const reductionDb =
+        Math.max(rmsDb - threshold, 0) * ((ratio - 1) / ratio);
+      if (this.reductionDb === 0 && reductionDb > 0) {
+        this.attackStartClock = this.sampleClock;
+        this.releaseStartClock = 0;
+      } else if (this.reductionDb !== 0 && reductionDb === 0) {
+        this.attackStartClock = 0;
+        this.releaseStartClock = this.sampleClock;
+      }
+      this.reductionDb = reductionDb;
 
+      channels.forEach((samples, c) => {
         rmsDbByChannel[c] = rmsDb;
         reductionDbByChannel[c] = reductionDb;
 
@@ -99,9 +123,27 @@ class CompressorProcessor extends AudioWorkletProcessor {
           const rmsBufferIndex = (sampleClock + s) % rmsBufferLength;
           rmsBuffers[c][s] = sample;
 
+          const attackMultiplier = this.attackStartClock
+            ? Math.min(
+                // clamp to max of 1 in case time runs over
+                1,
+                (sampleClock - this.attackStartClock + s) / attackSamples
+              )
+            : 1;
+          // similar to attack but inverse linear: y = -x + 1, ie 0 = 1, 1 = 0
+          const releaseMultiplier = this.releaseStartClock
+            ? -1 *
+                Math.min(
+                  // clamp to max of 1 in case time runs over
+                  1,
+                  (sampleClock - this.releaseStartClock + s) / releaseSamples
+                ) +
+              1
+            : 1;
+
           const sampleCompressed = reduceMagByDb(
             sample,
-            reductionDb * (s / attackSamples)
+            reductionDb * attackMultiplier * releaseMultiplier
           );
 
           if (isNaN(sampleCompressed)) {
@@ -128,7 +170,12 @@ class CompressorProcessor extends AudioWorkletProcessor {
     const samples = metrics.map(m => m.sample);
     const samplesCompressed = metrics.map(m => m.sampleCompressed);
     this.port.postMessage(
-      JSON.stringify({ reductionDb, rmsDb, samples, samplesCompressed })
+      JSON.stringify({
+        reductionDb,
+        rmsDb,
+        samples,
+        samplesCompressed
+      })
     );
 
     // TODO: can't seem to be able to return false here, even though docs say i should be able to?
