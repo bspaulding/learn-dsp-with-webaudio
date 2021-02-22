@@ -1,4 +1,14 @@
-import easingFunctions from "./easing.js";
+// WebKit doesn't like this...
+// import easingFunctions from "./easing.js";
+// so hacking around it for now :(
+const easingFunctions = {
+  easeInSine(x) {
+    return 1 - cos((x * PI) / 2);
+  },
+  easeOutSine(x) {
+    return sin((x * PI) / 2);
+  }
+};
 
 // logBase(10, y) => log base 10 of y
 const logBase = (base, x) => Math.log(x) / Math.log(base);
