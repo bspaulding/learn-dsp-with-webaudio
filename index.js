@@ -95,29 +95,44 @@ async function initAudioApp() {
     samplesCompressedBuffer: []
   };
   compressorNode.port.onmessage = event => {
-    const { reductionDb, rmsDb, samples, samplesCompressed } = JSON.parse(
-      event.data
-    );
-    document.querySelector("#compressor-rms-raw").innerText = Math.ceil(rmsDb);
-    document.querySelector("progress[name=compressor-rms]").value = Math.abs(
-      rmsDb / 100
-    );
-    document.querySelector("#compressor-reduction-raw").innerText = Math.ceil(
-      reductionDb
-    );
-    document.querySelector(
-      "progress[name=compressor-reduction]"
-    ).value = Math.abs(reductionDb / 100);
+    const action = JSON.parse(event.data);
+    switch (action.type) {
+      case "metrics":
+        const {
+          reductionDb,
+          rmsDb,
+          samples,
+          samplesCompressed
+        } = action.payload;
+        document.querySelector("#compressor-rms-raw").innerText = Math.ceil(
+          rmsDb
+        );
+        document.querySelector(
+          "progress[name=compressor-rms]"
+        ).value = Math.abs((rmsDb || 0) / 100);
+        document.querySelector(
+          "#compressor-reduction-raw"
+        ).innerText = Math.ceil(reductionDb);
+        document.querySelector(
+          "progress[name=compressor-reduction]"
+        ).value = Math.abs((reductionDb || 0) / 100);
 
-    vizBuffers["samplesBuffer"] = samples.concat(
-      vizBuffers["samplesBuffer"].slice(0, vizBuffersLength - samples.length)
-    );
-    vizBuffers["samplesCompressedBuffer"] = samplesCompressed.concat(
-      vizBuffers["samplesCompressedBuffer"].slice(
-        0,
-        vizBuffersLength - samplesCompressed.length
-      )
-    );
+        vizBuffers["samplesBuffer"] = samples.concat(
+          vizBuffers["samplesBuffer"].slice(
+            0,
+            vizBuffersLength - samples.length
+          )
+        );
+        vizBuffers["samplesCompressedBuffer"] = samplesCompressed.concat(
+          vizBuffers["samplesCompressedBuffer"].slice(
+            0,
+            vizBuffersLength - samplesCompressed.length
+          )
+        );
+        break;
+      default:
+        console.log("unhandled message from compressor node: ", action);
+    }
   };
 
   drawWave(

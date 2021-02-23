@@ -1,6 +1,7 @@
 // WebKit doesn't like this...
 // import easingFunctions from "./easing.js";
 // so hacking around it for now :(
+const { cos, sin, PI } = Math;
 const easingFunctions = {
   easeInSine(x) {
     return 1 - cos((x * PI) / 2);
@@ -71,7 +72,7 @@ class CompressorProcessor extends AudioWorkletProcessor {
       },
       {
         name: "bypass",
-        defaultValue: 0,
+        defaultValue: 1,
         minValue: 0,
         maxValue: 1,
         automationRate: "a-rate"
@@ -92,110 +93,125 @@ class CompressorProcessor extends AudioWorkletProcessor {
   }
 
   process(inputs, outputs, parameters) {
-    let threshold = parameters["threshold"][0];
-    let ratio = parameters["ratio"][0];
-    let bypass = parameters["bypass"][0];
-    let inputGain = parameters["input-gain"][0];
-    let attackMs = parameters["attack"][0];
-    let releaseMs = parameters["release"][0];
-    const attackSamples = (attackMs / 1000) * sampleRate;
-    const releaseSamples = (releaseMs / 1000) * sampleRate;
+    try {
+      let threshold = parameters["threshold"][0];
+      let ratio = parameters["ratio"][0];
+      let bypass = parameters["bypass"][0];
+      let inputGain = parameters["input-gain"][0];
+      let attackMs = parameters["attack"][0];
+      let releaseMs = parameters["release"][0];
+      const attackSamples = (attackMs / 1000) * sampleRate;
+      const releaseSamples = (releaseMs / 1000) * sampleRate;
 
-    const { rmsBuffers, sampleClock } = this;
+      const { rmsBuffers, sampleClock } = this;
 
-    const metrics = [];
+      const metrics = [];
 
-    const rmsDbByChannel = [];
-    const reductionDbByChannel = [];
+      const rmsDbByChannel = [];
+      const reductionDbByChannel = [];
 
-    inputs.forEach((channels, i) => {
-      const srms = Math.max.apply(
-        null,
-        channels.map((_, c) => rms(rmsBuffers[c]))
-      );
-      const rmsDb = mag2db(srms);
-      const reductionDb =
-        Math.max(rmsDb - threshold, 0) * ((ratio - 1) / ratio);
-      if (this.reductionDb === 0 && reductionDb > 0) {
-        this.attackStartClock = this.sampleClock;
-        this.releaseStartClock = 0;
-      } else if (this.reductionDb !== 0 && reductionDb === 0) {
-        this.attackStartClock = 0;
-        this.releaseStartClock = this.sampleClock;
-      }
-      this.reductionDb = reductionDb;
+      inputs.forEach((channels, i) => {
+        const srms = Math.max.apply(
+          null,
+          channels.map((_, c) => rms(rmsBuffers[c]))
+        );
+        const rmsDb = mag2db(srms);
+        const reductionDb =
+          Math.max(rmsDb - threshold, 0) * ((ratio - 1) / ratio);
+        if (this.reductionDb === 0 && reductionDb > 0) {
+          this.attackStartClock = this.sampleClock;
+          this.releaseStartClock = 0;
+        } else if (this.reductionDb !== 0 && reductionDb === 0) {
+          this.attackStartClock = 0;
+          this.releaseStartClock = this.sampleClock;
+        }
+        this.reductionDb = reductionDb;
 
-      channels.forEach((samples, c) => {
-        rmsDbByChannel[c] = rmsDb;
-        reductionDbByChannel[c] = reductionDb;
+        channels.forEach((samples, c) => {
+          rmsDbByChannel[c] = rmsDb;
+          reductionDbByChannel[c] = reductionDb;
 
-        samples.forEach((sampleRaw, s) => {
-          const sample = inputGain * sampleRaw;
-          // write sample to rmsBuffer
-          const rmsBufferIndex = (sampleClock + s) % rmsBufferLength;
-          rmsBuffers[c][s] = sample;
+          samples.forEach((sampleRaw, s) => {
+            const sample = inputGain * sampleRaw;
+            // write sample to rmsBuffer
+            const rmsBufferIndex = (sampleClock + s) % rmsBufferLength;
+            rmsBuffers[c][s] = sample;
 
-          const attackMultiplier = this.attackStartClock
-            ? easingFunctions.easeInSine(
-                Math.min(
-                  // clamp to max of 1 in case time runs over
-                  1,
-                  (sampleClock - this.attackStartClock + s) / attackSamples
-                )
-              )
-            : 1;
-          // similar to attack but inverse linear: y = -x + 1, ie 0 = 1, 1 = 0
-          const releaseMultiplier = this.releaseStartClock
-            ? -1 *
-                easingFunctions.easeOutSine(
+            const attackMultiplier = this.attackStartClock
+              ? easingFunctions.easeInSine(
                   Math.min(
                     // clamp to max of 1 in case time runs over
                     1,
-                    (sampleClock - this.releaseStartClock + s) / releaseSamples
+                    (sampleClock - this.attackStartClock + s) / attackSamples
                   )
-                ) +
-              1
-            : 1;
+                )
+              : 1;
+            // similar to attack but inverse linear: y = -x + 1, ie 0 = 1, 1 = 0
+            const releaseMultiplier = this.releaseStartClock
+              ? -1 *
+                  easingFunctions.easeOutSine(
+                    Math.min(
+                      // clamp to max of 1 in case time runs over
+                      1,
+                      (sampleClock - this.releaseStartClock + s) /
+                        releaseSamples
+                    )
+                  ) +
+                1
+              : 1;
 
-          const sampleCompressed = reduceMagByDb(
-            sample,
-            reductionDb * attackMultiplier * releaseMultiplier
-          );
+            const sampleCompressed = reduceMagByDb(
+              sample,
+              reductionDb * attackMultiplier * releaseMultiplier
+            );
 
-          if (isNaN(sampleCompressed)) {
-            console.warn("compressed sample value was NaN!");
-          }
+            if (isNaN(sampleCompressed)) {
+              console.warn("compressed sample value was NaN!");
+            }
 
-          metrics.push({
-            sample,
-            sampleCompressed
+            metrics.push({
+              sample,
+              sampleCompressed
+            });
+
+            outputs[i][c][s] =
+              bypass || isNaN(sampleCompressed) ? sample : sampleCompressed;
           });
-
-          outputs[i][c][s] =
-            bypass || isNaN(sampleCompressed) ? sample : sampleCompressed;
         });
+
+        if (channels.length) {
+          this.sampleClock += channels[0].length;
+        }
       });
 
-      if (channels.length) {
-        this.sampleClock += channels[0].length;
-      }
-    });
+      const reductionDb = reductionDbByChannel[0];
+      const rmsDb = rmsDbByChannel[0];
+      const samples = metrics.map(m => m.sample);
+      const samplesCompressed = metrics.map(m => m.sampleCompressed);
+      this.port.postMessage(
+        JSON.stringify({
+          type: "metrics",
+          payload: {
+            reductionDb,
+            rmsDb,
+            samples,
+            samplesCompressed
+          }
+        })
+      );
 
-    const reductionDb = reductionDbByChannel[0];
-    const rmsDb = rmsDbByChannel[0];
-    const samples = metrics.map(m => m.sample);
-    const samplesCompressed = metrics.map(m => m.sampleCompressed);
-    this.port.postMessage(
-      JSON.stringify({
-        reductionDb,
-        rmsDb,
-        samples,
-        samplesCompressed
-      })
-    );
-
-    // TODO: can't seem to be able to return false here, even though docs say i should be able to?
-    return true;
+      // TODO: can't seem to be able to return false here, even though docs say i should be able to?
+      return true;
+    } catch (e) {
+      this.port.postMessage(
+        JSON.stringify({
+          type: "error",
+          payload: {
+            message: e.message
+          }
+        })
+      );
+    }
   }
 }
 
