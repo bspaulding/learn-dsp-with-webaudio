@@ -4,11 +4,13 @@ Hi! :wave: I am trying to learn DSP / audio programming. I know JS, so I am usin
 
 Most of these will be implemented as AudioWorkletProcessor's. 
 
-## Effects
+## Node Types
 
-- :white_check_mark: Delay
-- :white_check_mark: BufferSource.
-  - I implemented my own to support play/stop without resetting the entire node like AudioBufferSourceNode.
-- Compressor is WIP.
-- EQ is TODO
-- Reverb is TODO
+Node Type|Status|Notes
+------|------|------
+Delay|:white_check_mark:
+BufferSource.|:white_check_mark:|I implemented my own to support play/stop without resetting the entire node like AudioBufferSourceNode.
+Compressor is WIP.|WIP|
+EQ|TODO|
+Reverb|TODO|
+Synthesizer|TODO|
