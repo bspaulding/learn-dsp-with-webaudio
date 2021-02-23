@@ -25,10 +25,22 @@ async function start() {
   playing = true;
 }
 
+function updateContextState(context) {
+  function update() {
+    requestAnimationFrame(update);
+
+    document.getElementById("context-state").innerText = context.state;
+  }
+
+  requestAnimationFrame(update);
+}
+
 async function initAudioApp() {
   init = true;
 
   const audioContext = new AudioContext();
+
+  updateContextState(audioContext);
 
   const rawGuitarBuffer = await loadBuffer(
     audioContext,
