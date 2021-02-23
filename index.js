@@ -49,8 +49,9 @@ async function initAudioApp() {
   let useWorkletBufferSource = true;
   let guitarBufferSource;
   if (!useWorkletBufferSource) {
-    guitarBufferSource = audioContext.createBufferSource();
-    guitarBufferSource.buffer = rawGuitarBuffer;
+    guitarBufferSource = new AudioBufferSourceNode(audioContext, {
+      buffer: rawGuitarBuffer
+    });
     guitarBufferSource.loop = true;
   } else {
     const bufferChannels = [
