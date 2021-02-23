@@ -78,6 +78,9 @@ async function initAudioApp() {
     guitarBufferSource.stop = ms => {
       guitarBufferSource.port.postMessage(JSON.stringify({ type: "stop" }));
     };
+    guitarBufferSource.port.onmessage = event => {
+      console.log("[guitarBufferSource] ", JSON.parse(event.data));
+    };
   }
   bufferSource = guitarBufferSource;
 
