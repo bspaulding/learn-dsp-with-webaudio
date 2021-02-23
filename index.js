@@ -193,6 +193,13 @@ async function initAudioApp() {
     // updateValue
     (el, v) => (el.checked = !!v)
   );
+
+  const resumeP = audioContext.resume();
+  resumeP
+    .then(() => console.log("resumed!"))
+    .catch(err => console.error("error resuming context", err));
+  audioContext.onstatechange = () =>
+    console.log("audioContext state change: ", audioContext.state);
 }
 
 main()
