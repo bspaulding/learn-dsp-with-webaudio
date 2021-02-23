@@ -9,8 +9,8 @@ Most of these will be implemented as AudioWorkletProcessor's.
 Node Type|Status|Notes
 ------|------|------
 Delay|:white_check_mark:
-BufferSource.|:white_check_mark:|I implemented my own to support play/stop without resetting the entire node like AudioBufferSourceNode.
-Compressor is WIP.|WIP|
+BufferSource|:white_check_mark:|I implemented my own to support play/stop without resetting the entire node like AudioBufferSourceNode.
+Compressor|WIP|
 EQ|TODO|
 Reverb|TODO|
 Synthesizer|TODO|
