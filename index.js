@@ -7,7 +7,11 @@ let playing = false;
 let bufferSource;
 async function start() {
   if (!init) {
-    await initAudioApp();
+    try {
+      await initAudioApp();
+    } catch (e) {
+      console.error(e);
+    }
   }
 
   if (playing) {
