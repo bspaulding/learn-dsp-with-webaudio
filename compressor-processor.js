@@ -91,8 +91,6 @@ class CompressorProcessor extends AudioWorkletProcessor {
     super();
     this.sampleClock = 0;
     this.reductionDb = 0;
-    this.attackStartClock = 0;
-    this.releaseStartClock = 0;
     this.rmsBuffers = [
       new Float32Array(rmsBufferLength),
       new Float32Array(rmsBufferLength)
@@ -115,63 +113,25 @@ class CompressorProcessor extends AudioWorkletProcessor {
 
       const metrics = [];
 
-      const rmsDbByChannel = [];
-      const reductionDbByChannel = [];
-
+      let rmsDb;
       inputs.forEach((channels, i) => {
         const srms = Math.max.apply(
           null,
           channels.map((_, c) => rms(rmsBuffers[c]))
         );
-        const rmsDb = mag2db(srms);
-        const reductionDb =
+        rmsDb = mag2db(srms);
+        const nextReductionDb =
           Math.max(rmsDb - threshold, 0) * ((ratio - 1) / ratio);
-        if (this.reductionDb === 0 && reductionDb > 0) {
-          this.attackStartClock = this.sampleClock;
-          this.releaseStartClock = 0;
-        } else if (this.reductionDb !== 0 && reductionDb === 0) {
-          this.attackStartClock = 0;
-          this.releaseStartClock = this.sampleClock;
-        }
-        this.reductionDb = reductionDb;
+        this.reductionDb = nextReductionDb;
 
         channels.forEach((samples, c) => {
-          rmsDbByChannel[c] = rmsDb;
-          reductionDbByChannel[c] = reductionDb;
-
           samples.forEach((sampleRaw, s) => {
             const sample = inputGain * sampleRaw;
             // write sample to rmsBuffer
             const rmsBufferIndex = (sampleClock + s) % rmsBufferLength;
             rmsBuffers[c][s] = sample;
 
-            const attackMultiplier = this.attackStartClock
-              ? easingFunctions.easeInSine(
-                  Math.min(
-                    // clamp to max of 1 in case time runs over
-                    1,
-                    (sampleClock - this.attackStartClock + s) / attackSamples
-                  )
-                )
-              : 1;
-            // similar to attack but inverse linear: y = -x + 1, ie 0 = 1, 1 = 0
-            const releaseMultiplier = this.releaseStartClock
-              ? -1 *
-                  easingFunctions.easeOutSine(
-                    Math.min(
-                      // clamp to max of 1 in case time runs over
-                      1,
-                      (sampleClock - this.releaseStartClock + s) /
-                        releaseSamples
-                    )
-                  ) +
-                1
-              : 1;
-
-            const sampleCompressed = reduceMagByDb(
-              sample,
-              reductionDb * attackMultiplier * releaseMultiplier
-            );
+            const sampleCompressed = reduceMagByDb(sample, this.reductionDb);
 
             if (isNaN(sampleCompressed)) {
               console.warn("compressed sample value was NaN!");
@@ -193,15 +153,13 @@ class CompressorProcessor extends AudioWorkletProcessor {
         }
       });
 
-      const reductionDb = reductionDbByChannel[0];
-      const rmsDb = rmsDbByChannel[0];
       const samples = metrics.map(m => m.sample);
       const samplesCompressed = metrics.map(m => m.sampleCompressed);
       this.port.postMessage(
         JSON.stringify({
           type: "metrics",
           payload: {
-            reductionDb,
+            reductionDb: this.reductionDb,
             rmsDb,
             samples,
             samplesCompressed
@@ -220,6 +178,7 @@ class CompressorProcessor extends AudioWorkletProcessor {
           }
         })
       );
+      return false;
     }
   }
 }
