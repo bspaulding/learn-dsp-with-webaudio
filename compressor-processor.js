@@ -43,8 +43,15 @@ class CompressorProcessor extends AudioWorkletProcessor {
         automationRate: "a-rate"
       },
       {
+        name: "output-gain",
+        defaultValue: 1,
+        minValue: 0,
+        maxValue: 5,
+        automationRate: "a-rate"
+      },
+      {
         name: "threshold",
-        defaultValue: -30,
+        defaultValue: -40,
         minValue: -80,
         maxValue: 0,
         automationRate: "a-rate"
@@ -58,21 +65,21 @@ class CompressorProcessor extends AudioWorkletProcessor {
       },
       {
         name: "attack",
-        defaultValue: 100,
+        defaultValue: 15,
         minValue: 0,
         maxValue: 200,
         automationRate: "a-rate"
       },
       {
         name: "release",
-        defaultValue: 100,
+        defaultValue: 50,
         minValue: 5,
         maxValue: 5000,
         automationRate: "a-rate"
       },
       {
         name: "bypass",
-        defaultValue: 1,
+        defaultValue: 0,
         minValue: 0,
         maxValue: 1,
         automationRate: "a-rate"
@@ -94,12 +101,13 @@ class CompressorProcessor extends AudioWorkletProcessor {
 
   process(inputs, outputs, parameters) {
     try {
-      let threshold = parameters["threshold"][0];
-      let ratio = parameters["ratio"][0];
-      let bypass = parameters["bypass"][0];
-      let inputGain = parameters["input-gain"][0];
-      let attackMs = parameters["attack"][0];
-      let releaseMs = parameters["release"][0];
+      const threshold = parameters["threshold"][0];
+      const ratio = parameters["ratio"][0];
+      const bypass = parameters["bypass"][0];
+      const inputGain = parameters["input-gain"][0];
+      const outputGain = parameters["output-gain"][0];
+      const attackMs = parameters["attack"][0];
+      const releaseMs = parameters["release"][0];
       const attackSamples = (attackMs / 1000) * sampleRate;
       const releaseSamples = (releaseMs / 1000) * sampleRate;
 
@@ -170,12 +178,13 @@ class CompressorProcessor extends AudioWorkletProcessor {
             }
 
             metrics.push({
-              sample,
-              sampleCompressed
+              sample: sample * outputGain,
+              sampleCompressed: sampleCompressed * outputGain
             });
 
             outputs[i][c][s] =
-              bypass || isNaN(sampleCompressed) ? sample : sampleCompressed;
+              outputGain *
+              (bypass || isNaN(sampleCompressed) ? sample : sampleCompressed);
           });
         });
 

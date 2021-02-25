@@ -166,6 +166,14 @@ async function initAudioApp() {
     parseFloating
   );
   wireParam(
+    "compressor-output-gain",
+    "compressor-output-gain-value",
+    "output-gain",
+    compressorNode,
+    asFloating(1),
+    parseFloating
+  );
+  wireParam(
     "threshold",
     "threshold-value",
     "threshold",
