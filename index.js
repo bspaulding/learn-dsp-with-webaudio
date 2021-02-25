@@ -23,6 +23,7 @@ async function start() {
     bufferSource.start(0);
     playing = true;
     document.getElementById("start").innerText = "stop";
+    startDrawingVizs();
     return;
   }
 
@@ -89,11 +90,6 @@ async function initAudioApp() {
     audioContext,
     "compressor-processor"
   );
-  const vizBuffersLength = 44100 * 3;
-  const vizBuffers = {
-    samplesBuffer: [],
-    samplesCompressedBuffer: []
-  };
   compressorNode.port.onmessage = event => {
     const action = JSON.parse(event.data);
     switch (action.type) {
@@ -134,17 +130,6 @@ async function initAudioApp() {
         console.log("unhandled message from compressor node: ", action);
     }
   };
-
-  drawWave(
-    document.getElementById("compressor-input-wave"),
-    vizBuffers,
-    "samplesBuffer"
-  );
-  drawWave(
-    document.getElementById("compressor-output-wave"),
-    vizBuffers,
-    "samplesCompressedBuffer"
-  );
 
   await audioContext.audioWorklet.addModule("delay-processor.js");
   const delayNode = new AudioWorkletNode(audioContext, "delay-processor");
@@ -272,9 +257,31 @@ function wireParam(
   control.removeAttribute("disabled");
 }
 
+const vizBuffersLength = 44100 * 2;
+const vizBuffers = {
+  samplesBuffer: new Float32Array(vizBuffersLength),
+  samplesCompressedBuffer: new Float32Array(vizBuffersLength)
+};
+
+function startDrawingVizs() {
+  drawWave(
+    document.getElementById("compressor-input-wave"),
+    vizBuffers,
+    "samplesBuffer"
+  );
+  drawWave(
+    document.getElementById("compressor-output-wave"),
+    vizBuffers,
+    "samplesCompressedBuffer"
+  );
+}
+
 function drawWave(canvas, vizBuffers, bufferName) {
   function draw() {
-    requestAnimationFrame(draw);
+    if (playing) {
+      requestAnimationFrame(draw);
+    }
+
     let data = vizBuffers[bufferName];
     let bufferLength = data.length;
 
