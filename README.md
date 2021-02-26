@@ -21,3 +21,4 @@ Synthesizer|TODO|
 
 - MATLAB Docs for various functions' formulas :)
 - All the ADC talks on YouTube!
+  - https://www.youtube.com/watch?v=oIChUOV_0w4
