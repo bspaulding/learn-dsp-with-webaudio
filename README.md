@@ -13,4 +13,11 @@ BufferSource|:white_check_mark:|I implemented my own to support play/stop withou
 Compressor|WIP|
 EQ|TODO|
 Reverb|TODO|
+WaveShaper|TODO|
+Diode Clipper|TODO|
 Synthesizer|TODO|
+
+# Resources
+
+- MATLAB Docs for various functions' formulas :)
+- All the ADC talks on YouTube!
