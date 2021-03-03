@@ -10,6 +10,7 @@ Node Type|Status|Notes
 ------|------|------
 Delay|:white_check_mark:
 BufferSource|:white_check_mark:|I implemented my own to support play/stop without resetting the entire node like AudioBufferSourceNode.
+BufferStreamSource|TODO|Try using Streams API to stream and play a large buffer
 Compressor|WIP|
 EQ|TODO|
 Reverb|TODO|
