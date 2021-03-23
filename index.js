@@ -190,6 +190,14 @@ async function initAudioApp() {
     parseInteger
   );
   wireParam(
+    "attack",
+    "attack-value",
+    "attack",
+    compressorNode,
+    x => `${x}ms`,
+    parseInteger
+  );
+  wireParam(
     "compressor-bypass",
     "compressor-bypass-value",
     "bypass",
