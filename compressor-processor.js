@@ -95,6 +95,7 @@ class CompressorProcessor extends AudioWorkletProcessor {
       new Float32Array(rmsBufferLength),
       new Float32Array(rmsBufferLength)
     ];
+    this.envelopeState = 0;
   }
 
   process(inputs, outputs, parameters) {
@@ -106,8 +107,12 @@ class CompressorProcessor extends AudioWorkletProcessor {
       const outputGain = parameters["output-gain"][0];
       const attackMs = parameters["attack"][0];
       const releaseMs = parameters["release"][0];
-      const attackSamples = (attackMs / 1000) * sampleRate;
-      const releaseSamples = (releaseMs / 1000) * sampleRate;
+
+      const thrlin = db2mag(threshold);
+      const cteAT = Math.exp((-2.0 * Math.PI * 1000.0) / attackMs / sampleRate);
+      const cteRL = Math.exp(
+        (-2.0 * Math.PI * 1000.0) / releaseMs / sampleRate
+      );
 
       const { rmsBuffers, sampleClock } = this;
 
@@ -120,9 +125,6 @@ class CompressorProcessor extends AudioWorkletProcessor {
           channels.map((_, c) => rms(rmsBuffers[c]))
         );
         rmsDb = mag2db(srms);
-        const nextReductionDb =
-          Math.max(rmsDb - threshold, 0) * ((ratio - 1) / ratio);
-        this.reductionDb = nextReductionDb;
 
         channels.forEach((samples, c) => {
           samples.forEach((sampleRaw, s) => {
@@ -131,16 +133,24 @@ class CompressorProcessor extends AudioWorkletProcessor {
             const rmsBufferIndex = (sampleClock + s) % rmsBufferLength;
             rmsBuffers[c][s] = sample;
 
-            const sampleCompressed = reduceMagByDb(sample, this.reductionDb);
+            const sideInput = srms;
+            const cte = sideInput >= this.envelopeState ? cteAT : cteRL;
+            const env = sideInput + cte * (this.envelopeState - sideInput);
+            this.envelopeState = env;
+
+            const sampleCompressedRaw =
+              sample < thrlin ? sample : thrlin + (sample - thrlin) / ratio;
+            const sampleCompressedClipped = Math.min(sampleCompressedRaw, 1);
+            const sampleCompressed = sampleCompressedClipped;
+
+            this.reductionDb =
+              sample < thrlin ? 0 : mag2db(sample - sampleCompressed);
 
             if (isNaN(sampleCompressed)) {
               console.warn("compressed sample value was NaN!");
             }
 
-            metrics.push({
-              sample: sample * outputGain,
-              sampleCompressed: sampleCompressed * outputGain
-            });
+            metrics.push({ sample, sampleCompressed });
 
             outputs[i][c][s] =
               outputGain *
